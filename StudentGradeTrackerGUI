@@ -1,0 +1,136 @@
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.awt.HeadlessException;
+import java.util.ArrayList;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+
+public class StudentGradeTrackerGUI extends JFrame {
+    private final JTextField nameField;
+    private JTextField gradeField;
+    private final JTextArea reportArea;
+    private JButton addButton = null;
+    private JButton showButton;
+
+    private final ArrayList<String> names = new ArrayList<>();
+    private final ArrayList<Double> grades = new ArrayList<>();
+
+    public StudentGradeTrackerGUI() {
+        setTitle("Student Grade Tracker");
+        setSize(500, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Input Panel
+        JPanel inputPanel = new JPanel(new GridLayout(3, 2, 10, 10));
+        inputPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        nameField = new JTextField();
+        gradeField = new JTextField();
+
+        inputPanel.add(new JLabel("Student Name:"));
+        inputPanel.add(nameField);
+        inputPanel.add(new JLabel("Grade (0–100):"));
+        inputPanel.add(gradeField);
+
+        method();
+        showButton = new JButton("Show Report");
+
+        inputPanel.add(addButton);
+        inputPanel.add(showButton);
+
+        add(inputPanel, BorderLayout.NORTH);
+
+        // Report Area
+        reportArea = new JTextArea();
+        reportArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(reportArea);
+        add(scrollPane, BorderLayout.CENTER);
+
+        // Button Actions
+        addButton.addActionListener(e -> addStudent());
+        showButton.addActionListener(e -> showReport());
+    }
+
+    public StudentGradeTrackerGUI(JTextField nameField, JTextArea reportArea) throws HeadlessException {
+        this.nameField = nameField;
+        this.reportArea = reportArea;
+    }
+
+    private void addStudent() {
+        String name = nameField.getText().trim();
+        String gradeText = gradeField.getText().trim();
+
+        if (name.isEmpty() || gradeText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter both name and grade.");
+            return;
+        }
+
+        try {
+            double grade = Double.parseDouble(gradeText);
+            if (grade < 0 || grade > 100) {
+                throw new NumberFormatException();
+            }
+            names.add(name);
+            grades.add(grade);
+            reportArea.append("✔ " + name + " added with grade: " + grade + "\n");
+            nameField.setText("");
+            gradeField.setText("");
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Grade must be a number between 0 and 100.");
+        }
+    }
+
+    private void showReport() {
+        if (grades.isEmpty()) {
+            reportArea.setText("No students added yet.");
+            return;
+        }
+
+        double total = 0, max = -1, min = 101;
+        String topStudent = "", lowStudent = "";
+
+        StringBuilder report = new StringBuilder("---- Student Summary ----\n");
+
+        for (int i = 0; i < names.size(); i++) {
+            double g = grades.get(i);
+            report.append(names.get(i)).append(" : ").append(g).append("\n");
+            total += g;
+            if (g > max) {
+                max = g;
+                topStudent = names.get(i);
+            }
+            if (g < min) {
+                min = g;
+                lowStudent = names.get(i);
+            }
+        }
+
+        double average = total / grades.size();
+        report.append("\nAverage Grade: ").append(String.format("%.2f", average))
+              .append("\nHighest Grade: ").append(String.format("%.2f", max)).append(" (").append(topStudent).append(")")
+              .append("\nLowest Grade : ").append(String.format("%.2f", min)).append(" (").append(lowStudent).append(")");
+
+        reportArea.setText(report.toString());
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new StudentGradeTrackerGUI().setVisible(true));
+    }
+
+    public JButton getAddButton() {
+        return addButton;
+    }
+
+    private void method() {
+        addButton = new JButton("Add Student");
+    }
+}
