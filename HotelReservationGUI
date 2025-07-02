@@ -1,0 +1,79 @@
+
+import java.awt.BorderLayout;
+import java.util.ArrayList;
+
+import javax.swing.DefaultListModel;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+class Room {
+int number;
+String type;
+boolean isBooked;
+Room(int number, String type) {
+this.number = number;
+this.type = type;
+this.isBooked = false;
+}
+@Override
+public String toString() {
+return "Room " + number + " (" + type + ") - " + (isBooked ? "Booked" : "Available");
+}
+}
+public class HotelReservationGUI extends JFrame {
+private final ArrayList<Room> rooms = new ArrayList<>();
+private final DefaultListModel<String> roomListModel = new DefaultListModel<>();
+private final JList<String> roomList = new JList<>(roomListModel);
+public HotelReservationGUI() {
+setTitle("Hotel Reservation System");
+setSize(500, 400);
+setDefaultCloseOperation(EXIT_ON_CLOSE);
+setLayout(new BorderLayout());
+rooms.add(new Room(101, "Standard"));
+rooms.add(new Room(102, "Deluxe"));
+rooms.add(new Room(103, "Suite"));
+updateRoomList();
+roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+add(new JScrollPane(roomList), BorderLayout.CENTER);
+JPanel buttons = new JPanel();
+JButton bookBtn = new JButton("Book Room");
+JButton cancelBtn = new JButton("Cancel Booking");
+buttons.add(bookBtn);
+buttons.add(cancelBtn);
+add(buttons, BorderLayout.SOUTH);
+bookBtn.addActionListener(e -> bookRoom());
+cancelBtn.addActionListener(e -> cancelRoom());
+}
+private void updateRoomList() {
+roomListModel.clear();
+for (Room r : rooms) roomListModel.addElement(r.toString());
+}
+private void bookRoom() {
+int index = roomList.getSelectedIndex();
+if (index != -1 && !rooms.get(index).isBooked) {
+rooms.get(index).isBooked = true;
+updateRoomList();
+JOptionPane.showMessageDialog(this, "Room booked successfully.");
+} else {
+JOptionPane.showMessageDialog(this, "Select an available room to book.");
+}
+}
+private void cancelRoom() {
+int index = roomList.getSelectedIndex();
+if (index != -1 && rooms.get(index).isBooked) {
+rooms.get(index).isBooked = false;
+updateRoomList();
+JOptionPane.showMessageDialog(this, "Booking cancelled.");
+} else {
+JOptionPane.showMessageDialog(this, "Select a booked room to cancel.");
+}
+}
+public static void main(String[] args) {
+SwingUtilities.invokeLater(() -> new HotelReservationGUI().setVisible(true));
+}
+}
