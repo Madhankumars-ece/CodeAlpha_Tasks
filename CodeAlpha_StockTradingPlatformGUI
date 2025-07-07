@@ -1,0 +1,166 @@
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.util.*;
+import javax.swing.*;
+
+class Stock {
+    String symbol;
+    double price;
+
+    public Stock(String symbol, double price) {
+        this.symbol = symbol;
+        this.price = price;
+    }
+
+    @Override
+    public String toString() {
+        return symbol + ": $" + price;
+    }
+}
+
+class Transaction {
+    String symbol;
+    int quantity;
+    double price;
+    String type;
+
+    public Transaction(String symbol, int quantity, double price, String type) {
+        this.symbol = symbol;
+        this.quantity = quantity;
+        this.price = price;
+        this.type = type;
+    }
+
+    @Override
+    public String toString() {
+        return type + " " + quantity + " shares of " + symbol + " at $" + price;
+    }
+}
+
+class User {
+    Map<String, Integer> portfolio = new HashMap<>();
+    List<Transaction> history = new ArrayList<>();
+    double balance = 10000;
+
+    public void buyStock(Stock stock, int quantity) {
+        double cost = stock.price * quantity;
+        if (balance >= cost) {
+            portfolio.put(stock.symbol, portfolio.getOrDefault(stock.symbol, 0) + quantity);
+            history.add(new Transaction(stock.symbol, quantity, stock.price, "BUY"));
+            balance -= cost;
+        } else {
+            JOptionPane.showMessageDialog(null, "Not enough balance.");
+        }
+    }
+
+    public void sellStock(Stock stock, int quantity) {
+        int owned = portfolio.getOrDefault(stock.symbol, 0);
+        if (owned >= quantity) {
+            portfolio.put(stock.symbol, owned - quantity);
+            history.add(new Transaction(stock.symbol, quantity, stock.price, "SELL"));
+            balance += stock.price * quantity;
+        } else {
+            JOptionPane.showMessageDialog(null, "Not enough shares.");
+        }
+    }
+
+    public String getPortfolio() {
+        StringBuilder sb = new StringBuilder("Portfolio:\n");
+        for (String sym : portfolio.keySet()) {
+            sb.append(sym).append(": ").append(portfolio.get(sym)).append(" shares\n");
+        }
+        sb.append("Balance: $").append(balance);
+        return sb.toString();
+    }
+
+    public String getHistory() {
+        StringBuilder sb = new StringBuilder("Transaction History:\n");
+        for (Transaction t : history) {
+            sb.append(t).append("\n");
+        }
+        return sb.toString();
+    }
+
+    public void setHistory(List<Transaction> history) {
+        this.history = history;
+    }
+}
+
+public class StockTradingPlatformGUI {
+    static Map<String, Stock> market = new HashMap<>();
+    static User user = new User();
+    static JTextArea displayArea = new JTextArea(15, 30);
+
+    public static void main(String[] args) {
+        loadMarket();
+
+        JFrame frame = new JFrame("Stock Trading Platform");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(0, 1));
+
+        JButton viewMarketBtn = new JButton("View Market");
+        JButton buyBtn = new JButton("Buy Stock");
+        JButton sellBtn = new JButton("Sell Stock");
+        JButton portfolioBtn = new JButton("View Portfolio");
+        JButton historyBtn = new JButton("View History");
+
+        displayArea.setEditable(false);
+        JScrollPane scroll = new JScrollPane(displayArea);
+
+        viewMarketBtn.addActionListener(e -> {
+            displayArea.setText("--- Market ---\n");
+            for (Stock s : market.values()) {
+                displayArea.append(s + "\n");
+            }
+        });
+
+        buyBtn.addActionListener(e -> {
+            String sym = JOptionPane.showInputDialog("Enter Stock Symbol to Buy:").toUpperCase();
+            String qtyStr = JOptionPane.showInputDialog("Enter Quantity:");
+            int qty = Integer.parseInt(qtyStr);
+            Stock s = market.get(sym);
+            if (s != null) {
+                user.buyStock(s, qty);
+                JOptionPane.showMessageDialog(null, "Bought " + qty + " shares of " + sym);
+            } else {
+                JOptionPane.showMessageDialog(null, "Stock not found.");
+            }
+        });
+
+        sellBtn.addActionListener(e -> {
+            String sym = JOptionPane.showInputDialog("Enter Stock Symbol to Sell:").toUpperCase();
+            String qtyStr = JOptionPane.showInputDialog("Enter Quantity:");
+            int qty = Integer.parseInt(qtyStr);
+            Stock s = market.get(sym);
+            if (s != null) {
+                user.sellStock(s, qty);
+                JOptionPane.showMessageDialog(null, "Sold " + qty + " shares of " + sym);
+            } else {
+                JOptionPane.showMessageDialog(null, "Stock not found.");
+            }
+        });
+
+        portfolioBtn.addActionListener(e -> displayArea.setText(user.getPortfolio()));
+        historyBtn.addActionListener(e -> displayArea.setText(user.getHistory()));
+
+        panel.add(viewMarketBtn);
+        panel.add(buyBtn);
+        panel.add(sellBtn);
+        panel.add(portfolioBtn);
+        panel.add(historyBtn);
+
+        frame.getContentPane().add(BorderLayout.CENTER, scroll);
+        frame.getContentPane().add(BorderLayout.EAST, panel);
+        frame.pack();
+        frame.setVisible(true);
+    }
+
+    static void loadMarket() {
+        market.put("AAPL", new Stock("AAPL", 190.0));
+        market.put("GOOG", new Stock("GOOG", 2800.0));
+        market.put("MSFT", new Stock("MSFT", 330.0));
+        market.put("TSLA", new Stock("TSLA", 720.0));
+    }
+}
