@@ -1,9 +1,9 @@
-import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.io.*;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+import javax.swing.*;
 
 // Serializable Room class
 class Room implements Serializable {
@@ -29,25 +29,31 @@ class Room implements Serializable {
     }
 }
 
-// Hotel manager class with file I/O
+// Hotel manager with data loading and persistence
 class HotelManager {
     List<Room> rooms;
 
     HotelManager() {
-        rooms = tryLoadData();
-        if (rooms.isEmpty()) {
-            initRooms();
-        }
+        rooms = loadInitialRooms();
     }
 
-    // Initialize default rooms
-    void initRooms() {
-        rooms.add(new Room(101, "Standard", 2000));
-        rooms.add(new Room(102, "Standard", 2000));
-        rooms.add(new Room(201, "Deluxe", 3500));
-        rooms.add(new Room(202, "Deluxe", 3500));
-        rooms.add(new Room(301, "Suite", 5000));
-        saveData();
+    private List<Room> loadInitialRooms() {
+        List<Room> loaded = tryLoadData();
+        if (loaded.isEmpty()) {
+            List<Room> defaultRooms = new ArrayList<>();
+            initRooms(defaultRooms);
+            saveData(defaultRooms);
+            return defaultRooms;
+        }
+        return loaded;
+    }
+
+    private void initRooms(List<Room> list) {
+        list.add(new Room(101, "Standard", 2000));
+        list.add(new Room(102, "Standard", 2000));
+        list.add(new Room(201, "Deluxe", 3500));
+        list.add(new Room(202, "Deluxe", 3500));
+        list.add(new Room(301, "Suite", 5000));
     }
 
     List<Room> getAllRooms() {
@@ -74,24 +80,25 @@ class HotelManager {
     void bookRoom(Room room, String customerName) {
         room.isBooked = true;
         room.customerName = customerName;
-        saveData();
+        saveData(rooms);
     }
 
     void cancelBooking(Room room) {
         room.isBooked = false;
         room.customerName = "";
-        saveData();
+        saveData(rooms);
     }
 
-    void saveData() {
+    private void saveData(List<Room> data) {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("hotel_data.ser"))) {
-            out.writeObject(rooms);
+            out.writeObject(data);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error saving room data: " + e.getMessage());
         }
     }
 
-    List<Room> tryLoadData() {
+    @SuppressWarnings("unchecked")
+    private List<Room> tryLoadData() {
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("hotel_data.ser"))) {
             return (List<Room>) in.readObject();
         } catch (IOException | ClassNotFoundException e) {
@@ -100,12 +107,12 @@ class HotelManager {
     }
 }
 
-// Main GUI class
-public class HotelReservationGUI extends JFrame {
+// GUI class
+public class HotelReservation extends JFrame {
     HotelManager hotel = new HotelManager();
     JTextArea displayArea;
 
-    public HotelReservationGUI() {
+    public HotelReservation() {
         setTitle("Hotel Reservation System");
         setSize(600, 500);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -129,15 +136,15 @@ public class HotelReservationGUI extends JFrame {
 
     private void handleAction(String action) {
         switch (action) {
-            case "View All Rooms":
-                showRooms(hotel.getAllRooms());
-                break;
-            case "Search by Category":
+            case "View All Rooms" -> showRooms(hotel.getAllRooms());
+
+            case "Search by Category" -> {
                 String cat = JOptionPane.showInputDialog(this, "Enter category (Standard/Deluxe/Suite):");
                 if (cat != null)
                     showRooms(hotel.getAvailableRoomsByCategory(cat));
-                break;
-            case "Book Room":
+            }
+
+            case "Book Room" -> {
                 String roomStr = JOptionPane.showInputDialog(this, "Enter room number to book:");
                 if (roomStr != null) {
                     try {
@@ -159,8 +166,9 @@ public class HotelReservationGUI extends JFrame {
                         JOptionPane.showMessageDialog(this, "Invalid room number.");
                     }
                 }
-                break;
-            case "Cancel Booking":
+            }
+
+            case "Cancel Booking" -> {
                 String cancelRoomStr = JOptionPane.showInputDialog(this, "Enter room number to cancel:");
                 if (cancelRoomStr != null) {
                     try {
@@ -176,17 +184,17 @@ public class HotelReservationGUI extends JFrame {
                         JOptionPane.showMessageDialog(this, "Invalid room number.");
                     }
                 }
-                break;
-            case "View Bookings":
+            }
+
+            case "View Bookings" -> {
                 List<Room> booked = new ArrayList<>();
                 for (Room r : hotel.getAllRooms()) {
                     if (r.isBooked) booked.add(r);
                 }
                 showRooms(booked);
-                break;
-            case "Exit":
-                dispose();
-                break;
+            }
+
+            case "Exit" -> dispose();
         }
     }
 
@@ -203,7 +211,7 @@ public class HotelReservationGUI extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new HotelReservationGUI().setVisible(true);
+            new HotelReservation().setVisible(true);
         });
     }
 }
