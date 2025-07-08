@@ -1,79 +1,209 @@
-
+import javax.swing.*;
 import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.io.*;
+import java.util.List;
 import java.util.ArrayList;
 
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ListSelectionModel;
-import javax.swing.SwingUtilities;
-class Room {
-int number;
-String type;
-boolean isBooked;
-Room(int number, String type) {
-this.number = number;
-this.type = type;
-this.isBooked = false;
+// Serializable Room class
+class Room implements Serializable {
+    int roomNumber;
+    String category;
+    boolean isBooked;
+    String customerName;
+    double price;
+
+    Room(int roomNumber, String category, double price) {
+        this.roomNumber = roomNumber;
+        this.category = category;
+        this.price = price;
+        this.isBooked = false;
+        this.customerName = "";
+    }
+
+    @Override
+    public String toString() {
+        return "Room " + roomNumber + " (" + category + ") - " +
+                (isBooked ? "Booked by " + customerName : "Available") +
+                ", ₹" + price;
+    }
 }
-@Override
-public String toString() {
-return "Room " + number + " (" + type + ") - " + (isBooked ? "Booked" : "Available");
+
+// Hotel manager class with file I/O
+class HotelManager {
+    List<Room> rooms;
+
+    HotelManager() {
+        rooms = tryLoadData();
+        if (rooms.isEmpty()) {
+            initRooms();
+        }
+    }
+
+    // Initialize default rooms
+    void initRooms() {
+        rooms.add(new Room(101, "Standard", 2000));
+        rooms.add(new Room(102, "Standard", 2000));
+        rooms.add(new Room(201, "Deluxe", 3500));
+        rooms.add(new Room(202, "Deluxe", 3500));
+        rooms.add(new Room(301, "Suite", 5000));
+        saveData();
+    }
+
+    List<Room> getAllRooms() {
+        return rooms;
+    }
+
+    List<Room> getAvailableRoomsByCategory(String category) {
+        List<Room> available = new ArrayList<>();
+        for (Room r : rooms) {
+            if (r.category.equalsIgnoreCase(category) && !r.isBooked) {
+                available.add(r);
+            }
+        }
+        return available;
+    }
+
+    Room getRoomByNumber(int roomNum) {
+        for (Room r : rooms) {
+            if (r.roomNumber == roomNum) return r;
+        }
+        return null;
+    }
+
+    void bookRoom(Room room, String customerName) {
+        room.isBooked = true;
+        room.customerName = customerName;
+        saveData();
+    }
+
+    void cancelBooking(Room room) {
+        room.isBooked = false;
+        room.customerName = "";
+        saveData();
+    }
+
+    void saveData() {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("hotel_data.ser"))) {
+            out.writeObject(rooms);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    List<Room> tryLoadData() {
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream("hotel_data.ser"))) {
+            return (List<Room>) in.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            return new ArrayList<>();
+        }
+    }
 }
-}
+
+// Main GUI class
 public class HotelReservationGUI extends JFrame {
-private final ArrayList<Room> rooms = new ArrayList<>();
-private final DefaultListModel<String> roomListModel = new DefaultListModel<>();
-private final JList<String> roomList = new JList<>(roomListModel);
-public HotelReservationGUI() {
-setTitle("Hotel Reservation System");
-setSize(500, 400);
-setDefaultCloseOperation(EXIT_ON_CLOSE);
-setLayout(new BorderLayout());
-rooms.add(new Room(101, "Standard"));
-rooms.add(new Room(102, "Deluxe"));
-rooms.add(new Room(103, "Suite"));
-updateRoomList();
-roomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-add(new JScrollPane(roomList), BorderLayout.CENTER);
-JPanel buttons = new JPanel();
-JButton bookBtn = new JButton("Book Room");
-JButton cancelBtn = new JButton("Cancel Booking");
-buttons.add(bookBtn);
-buttons.add(cancelBtn);
-add(buttons, BorderLayout.SOUTH);
-bookBtn.addActionListener(e -> bookRoom());
-cancelBtn.addActionListener(e -> cancelRoom());
-}
-private void updateRoomList() {
-roomListModel.clear();
-for (Room r : rooms) roomListModel.addElement(r.toString());
-}
-private void bookRoom() {
-int index = roomList.getSelectedIndex();
-if (index != -1 && !rooms.get(index).isBooked) {
-rooms.get(index).isBooked = true;
-updateRoomList();
-JOptionPane.showMessageDialog(this, "Room booked successfully.");
-} else {
-JOptionPane.showMessageDialog(this, "Select an available room to book.");
-}
-}
-private void cancelRoom() {
-int index = roomList.getSelectedIndex();
-if (index != -1 && rooms.get(index).isBooked) {
-rooms.get(index).isBooked = false;
-updateRoomList();
-JOptionPane.showMessageDialog(this, "Booking cancelled.");
-} else {
-JOptionPane.showMessageDialog(this, "Select a booked room to cancel.");
-}
-}
-public static void main(String[] args) {
-SwingUtilities.invokeLater(() -> new HotelReservationGUI().setVisible(true));
-}
+    HotelManager hotel = new HotelManager();
+    JTextArea displayArea;
+
+    public HotelReservationGUI() {
+        setTitle("Hotel Reservation System");
+        setSize(600, 500);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        displayArea = new JTextArea();
+        displayArea.setEditable(false);
+        add(new JScrollPane(displayArea), BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 3, 10, 10));
+        String[] buttons = {"View All Rooms", "Search by Category", "Book Room", "Cancel Booking", "View Bookings", "Exit"};
+
+        for (String btnText : buttons) {
+            JButton btn = new JButton(btnText);
+            btn.addActionListener(e -> handleAction(btnText));
+            buttonPanel.add(btn);
+        }
+
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private void handleAction(String action) {
+        switch (action) {
+            case "View All Rooms":
+                showRooms(hotel.getAllRooms());
+                break;
+            case "Search by Category":
+                String cat = JOptionPane.showInputDialog(this, "Enter category (Standard/Deluxe/Suite):");
+                if (cat != null)
+                    showRooms(hotel.getAvailableRoomsByCategory(cat));
+                break;
+            case "Book Room":
+                String roomStr = JOptionPane.showInputDialog(this, "Enter room number to book:");
+                if (roomStr != null) {
+                    try {
+                        int roomNum = Integer.parseInt(roomStr);
+                        Room r = hotel.getRoomByNumber(roomNum);
+                        if (r != null && !r.isBooked) {
+                            int confirm = JOptionPane.showConfirmDialog(this, "Pay ₹" + r.price + " to book Room " + r.roomNumber + "?", "Payment", JOptionPane.YES_NO_OPTION);
+                            if (confirm == JOptionPane.YES_OPTION) {
+                                String name = JOptionPane.showInputDialog(this, "Enter your name:");
+                                if (name != null && !name.isEmpty()) {
+                                    hotel.bookRoom(r, name);
+                                    JOptionPane.showMessageDialog(this, "Room booked successfully!");
+                                }
+                            }
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Room not available or doesn't exist.");
+                        }
+                    } catch (NumberFormatException e) {
+                        JOptionPane.showMessageDialog(this, "Invalid room number.");
+                    }
+                }
+                break;
+            case "Cancel Booking":
+                String cancelRoomStr = JOptionPane.showInputDialog(this, "Enter room number to cancel:");
+                if (cancelRoomStr != null) {
+                    try {
+                        int cancelRoom = Integer.parseInt(cancelRoomStr);
+                        Room r = hotel.getRoomByNumber(cancelRoom);
+                        if (r != null && r.isBooked) {
+                            hotel.cancelBooking(r);
+                            JOptionPane.showMessageDialog(this, "Booking cancelled.");
+                        } else {
+                            JOptionPane.showMessageDialog(this, "No booking found for this room.");
+                        }
+                    } catch (NumberFormatException e) {
+                        JOptionPane.showMessageDialog(this, "Invalid room number.");
+                    }
+                }
+                break;
+            case "View Bookings":
+                List<Room> booked = new ArrayList<>();
+                for (Room r : hotel.getAllRooms()) {
+                    if (r.isBooked) booked.add(r);
+                }
+                showRooms(booked);
+                break;
+            case "Exit":
+                dispose();
+                break;
+        }
+    }
+
+    private void showRooms(List<Room> roomList) {
+        displayArea.setText("");
+        if (roomList.isEmpty()) {
+            displayArea.setText("No rooms found.");
+        } else {
+            for (Room r : roomList) {
+                displayArea.append(r.toString() + "\n");
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new HotelReservationGUI().setVisible(true);
+        });
+    }
 }
