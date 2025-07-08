@@ -2,7 +2,6 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.HeadlessException;
 import java.util.ArrayList;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -14,7 +13,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-public class StudentGradeTrackerGUI extends JFrame {
+public class StudentGradeTracker extends JFrame {
     private final JTextField nameField;
     private JTextField gradeField;
     private final JTextArea reportArea;
@@ -24,7 +23,7 @@ public class StudentGradeTrackerGUI extends JFrame {
     private final ArrayList<String> names = new ArrayList<>();
     private final ArrayList<Double> grades = new ArrayList<>();
 
-    public StudentGradeTrackerGUI() {
+    public StudentGradeTracker() {
         setTitle("Student Grade Tracker");
         setSize(500, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -60,7 +59,7 @@ public class StudentGradeTrackerGUI extends JFrame {
         showButton.addActionListener(e -> showReport());
     }
 
-    public StudentGradeTrackerGUI(JTextField nameField, JTextArea reportArea) throws HeadlessException {
+    public StudentGradeTracker(JTextField nameField, JTextArea reportArea) throws HeadlessException {
         this.nameField = nameField;
         this.reportArea = reportArea;
     }
@@ -123,7 +122,7 @@ public class StudentGradeTrackerGUI extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new StudentGradeTrackerGUI().setVisible(true));
+        SwingUtilities.invokeLater(() -> new StudentGradeTracker().setVisible(true));
     }
 
     public JButton getAddButton() {
